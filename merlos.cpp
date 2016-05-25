@@ -21,13 +21,13 @@ void fileExist(fstream &file, string filename)
 int main()
 {
   string globalInfofilename = "GlobalToLocalMap.dat", wholelinedata, file = "Result-T", filetemp = ".dat", filetemp2 = ".bin", globalResultfilename = "Result-T", filelocal = "-LM", temp, temp2, dummy, str;
-  int startNumber = -1, endNumber = -1, interval = 0, numberofProcesses = 0, rank = 0, GlobalID = 0, ID = 0, lineLength = 0, esize = 0, offset = 8, minRank = 1, inBinary = 0, outBinary = 0, data1 = -1;
+  int startNumber = -1, endNumber = -1, interval = 0, numberofProcesses = 0, rank = 0, GlobalID = 0, ID = 0, lineLength = 0, esize = 0, offset = 8, minRank = 1, inBinary = 0, outBinary = 0, data1 = -1, dimensionality = 0, numVar = 0;
   vector<int> process, localID;
   char ftemp[8], f_rank[3];
   char* buffer;
   ifstream *localResultFile;
   ofstream globalResultFile;
-  double data[9] = {};
+  double data[16] = {};
   
   fstream globalInfo(globalInfofilename.c_str(), ios::in);
   fileExist(globalInfo,globalInfofilename.c_str());
@@ -44,9 +44,11 @@ int main()
   cin >> interval;
   cout << "\nPlease enter the prefix of the file: ";
   cin >> globalResultfilename;
-  cout << "\nPlease enter the data type of the input files: (0: ASCII  1: Binary)";
+  cout << "\nPlease enter the dimensionality of the file (2: 2D  3:3D): ";
+  cin >> dimensionality;
+  cout << "\nPlease enter the data type of the input files (0: ASCII  1: Binary):";
   cin >> inBinary;
-  cout << "\nPlease enter the data type of the output files: (0: ASCII  1: Binary)";
+  cout << "\nPlease enter the data type of the output files (0: ASCII  1: Binary):";
   cin >> outBinary;
   
   // Read global mesh to local mesh information (m, localMesh[m][k], k+1)
@@ -66,6 +68,12 @@ int main()
 
   numberofProcesses+= 1 - minRank; // if rank start from 0
   cout << "Done!";
+  
+  if (dimensionality == 2) {
+    numVar = 9;
+  } else {
+    numVar = 16;
+  }
   
   // Open local result files
   switch (inBinary) {
@@ -106,27 +114,26 @@ int main()
         for (int k = 0; k < esize; k++) {
           // Check the length of 1 line
           if (k == 0) {
-            lineLength = sizeof(int) + 9 * sizeof(double);
+            lineLength = sizeof(int) + numVar * sizeof(double);
             buffer = new char[lineLength];
           }
           // Read local file
           localResultFile[process[k]].seekg((localID[k]-1) * lineLength, localResultFile[process[k]].beg);
           localResultFile[process[k]].read(reinterpret_cast<char *>(&data1),sizeof(int));
-          for (int j = 0; j < 9; j++)
+          for (int j = 0; j < numVar; j++)
             localResultFile[process[k]].read(reinterpret_cast<char *>(&data[j]),sizeof(double));
           
           // Write global file
           if (outBinary == 1) {
             globalResultFile.write(reinterpret_cast<const char *>(&data1), sizeof(int));
-            for (int j = 0; j < 9; j++)
+            for (int j = 0; j < numVar; j++)
               globalResultFile.write(reinterpret_cast<const char *>(&data[j]),sizeof(double));
           } else {
             globalResultFile << setiosflags(ios::right) << setw(8) << k+1 << setiosflags (ios::fixed | ios::showpoint) ;
-            for (int k = 0; k < 9; k++)
+            for (int k = 0; k < numVar; k++)
               globalResultFile  << setw(20) << setprecision(13) << data[k];
             globalResultFile << endl;
           }
-
         }
         
         // Close all files and reset variables
@@ -162,18 +169,39 @@ int main()
         
         // Load local result file for global ID
         esize = process.size();
-        globalResultFile.open(globalResultfilename.c_str(), std::ofstream::out);
-        for (int k = 0; k < esize; k++) {
-          // Check the length of 1 line
-          if (k == 0) {
-            getline(localResultFile[0], wholelinedata);
-            lineLength = localResultFile[0].tellg();
+        if (outBinary == 0) {
+          globalResultFile.open(globalResultfilename.c_str(), std::ofstream::out);
+          for (int k = 0; k < esize; k++) {
+            // Check the length of 1 line
+            if (k == 0) {
+              getline(localResultFile[0], wholelinedata);
+              lineLength = localResultFile[0].tellg();
+            }
+            // Read local file
+            localResultFile[process[k]].seekg((localID[k]-1) * lineLength + offset, localResultFile[process[k]].beg);
+            getline(localResultFile[process[k]], wholelinedata);
+            // Write global file
+            globalResultFile << setiosflags(ios::right) << setw(8) << k+1 << wholelinedata << "\n";
           }
-          // Read local file
-          localResultFile[process[k]].seekg((localID[k]-1) * lineLength + offset, localResultFile[process[k]].beg);
-          getline(localResultFile[process[k]], wholelinedata);
-          // Write global file
-          globalResultFile << setiosflags(ios::right) << setw(8) << k+1 << wholelinedata << "\n";
+        } else {
+          globalResultFile.open(globalResultfilename.c_str(), std::ofstream::out | ios::binary);
+          for (int k = 0; k < esize; k++) {
+            // Check the length of 1 line
+            if (k == 0) {
+              getline(localResultFile[0], wholelinedata);
+              lineLength = localResultFile[0].tellg();
+            }
+            // Read local file
+            localResultFile[process[k]].seekg((localID[k]-1) * lineLength + offset, localResultFile[process[k]].beg);
+            localResultFile[process[k]] >> data1;
+            for (int j = 0; j < numVar; j++)
+              localResultFile[process[k]] >> data[j];
+            
+            // Write global file
+            globalResultFile.write(reinterpret_cast<const char *>(&data1), sizeof(int));
+            for (int j = 0; j < numVar; j++)
+              globalResultFile.write(reinterpret_cast<const char *>(&data[j]),sizeof(double));
+          }
         }
         
         // Close all files and reset variables
