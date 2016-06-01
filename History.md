@@ -1,6 +1,10 @@
 History of Release
 ==================
 
+### Version 1.3 - 2016-06-01
+
+1. Fixed bug for writing binary output.
+
 ### Version 1.2 - 2016-05-25
 
 1. Fixed bug for 3D data file binary I/O.

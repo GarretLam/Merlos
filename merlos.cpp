@@ -33,7 +33,7 @@ int main()
   fileExist(globalInfo,globalInfofilename.c_str());
   
   cout << "\nMERLOS - The merging of local solutions to the global solutions for CE/SE MPI program";
-  cout << "\nVersion 1.1";
+  cout << "\nVersion 1.2";
   cout << "\nCopyright (c) 2016 Garret. All rights reserved.";
   cout << "\n";
   cout << "\nPlease enter the starting number of file name for combining: ";
@@ -153,7 +153,10 @@ int main()
         file.append(filelocal);
         temp = file;
         globalResultfilename.append(ftemp);
-        globalResultfilename.append(filetemp);
+        if (outBinary == 0)
+          globalResultfilename.append(filetemp2);
+        else
+          globalResultfilename.append(filetemp2);
         cout << "\nProcessing " << setiosflags(ios::left) << setw(58) << setfill('.') << globalResultfilename;
         
         // Open local result file
@@ -192,15 +195,16 @@ int main()
               lineLength = localResultFile[0].tellg();
             }
             // Read local file
-            localResultFile[process[k]].seekg((localID[k]-1) * lineLength + offset, localResultFile[process[k]].beg);
+            localResultFile[process[k]].seekg((localID[k]-1) * lineLength, localResultFile[process[k]].beg);
             localResultFile[process[k]] >> data1;
             for (int j = 0; j < numVar; j++)
               localResultFile[process[k]] >> data[j];
             
             // Write global file
-            globalResultFile.write(reinterpret_cast<const char *>(&data1), sizeof(int));
+            ID = k + 1;
+            globalResultFile.write(reinterpret_cast<const char *>(&ID), sizeof(int));
             for (int j = 0; j < numVar; j++)
-              globalResultFile.write(reinterpret_cast<const char *>(&data[j]),sizeof(double));
+              globalResultFile.write(reinterpret_cast<const char *>(&data[j]), sizeof(double));
           }
         }
         
@@ -215,7 +219,7 @@ int main()
       break;
   }
   
-  delete[] localResultFile;
-  delete[] buffer;
+//  delete[] localResultFile;
+//  delete[] buffer;
   return 0;
 }
