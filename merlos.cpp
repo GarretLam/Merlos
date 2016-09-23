@@ -124,8 +124,9 @@ int main()
             localResultFile[process[k]].read(reinterpret_cast<char *>(&data[j]),sizeof(double));
           
           // Write global file
+          ID = k + 1;
           if (outBinary == 1) {
-            globalResultFile.write(reinterpret_cast<const char *>(&data1), sizeof(int));
+            globalResultFile.write(reinterpret_cast<const char *>(&ID), sizeof(int));
             for (int j = 0; j < numVar; j++)
               globalResultFile.write(reinterpret_cast<const char *>(&data[j]),sizeof(double));
           } else {

@@ -1,6 +1,10 @@
 History of Release
 ==================
 
+### Version 1.4 - 2016-09-23
+
+1. Fixed bug for writing binary output about the element ID.
+
 ### Version 1.3 - 2016-06-01
 
 1. Fixed bug for writing binary output.
