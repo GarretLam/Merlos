@@ -28,10 +28,10 @@ int main()
   ifstream *localResultFile;
   ofstream globalResultFile;
   double data[16] = {};
-  
+
   fstream globalInfo(globalInfofilename.c_str(), ios::in);
   fileExist(globalInfo,globalInfofilename.c_str());
-  
+
   cout << "\nMERLOS - The merging of local solutions to the global solutions for CE/SE MPI program";
   cout << "\nVersion 1.2";
   cout << "\nCopyright (c) 2016 Garret. All rights reserved.";
@@ -50,7 +50,7 @@ int main()
   cin >> inBinary;
   cout << "\nPlease enter the data type of the output files (0: ASCII  1: Binary):";
   cin >> outBinary;
-  
+
   // Read global mesh to local mesh information (m, localMesh[m][k], k+1)
   temp2 = globalResultfilename;
   file = globalResultfilename;
@@ -68,13 +68,13 @@ int main()
 
   numberofProcesses+= 1 - minRank; // if rank start from 0
   cout << "Done!";
-  
+
   if (dimensionality == 2) {
     numVar = 9;
   } else {
     numVar = 16;
   }
-  
+
   // Open local result files
   switch (inBinary) {
     case 1: // Binary input
@@ -89,7 +89,7 @@ int main()
         else
           globalResultfilename.append(filetemp);
         cout << "\nProcessing " << setiosflags(ios::left) << setw(58) << setfill('.') << globalResultfilename;
-        
+
         // Open local result file
         if (m == startNumber)
           localResultFile = new ifstream[numberofProcesses];
@@ -103,14 +103,14 @@ int main()
           localResultFile[r].open(file.c_str(), ios::in | ios::binary);
           file = temp;
         }
-        
+
         // Load local result file for global ID
         esize = process.size();
         if (outBinary == 1)
           globalResultFile.open(globalResultfilename.c_str(), std::ofstream::out | ios::binary);
         else
           globalResultFile.open(globalResultfilename.c_str(), std::ofstream::out);
-        
+
         for (int k = 0; k < esize; k++) {
           // Check the length of 1 line
           if (k == 0) {
@@ -122,7 +122,7 @@ int main()
           localResultFile[process[k]].read(reinterpret_cast<char *>(&data1),sizeof(int));
           for (int j = 0; j < numVar; j++)
             localResultFile[process[k]].read(reinterpret_cast<char *>(&data[j]),sizeof(double));
-          
+
           // Write global file
           ID = k + 1;
           if (outBinary == 1) {
@@ -136,7 +136,7 @@ int main()
             globalResultFile << endl;
           }
         }
-        
+
         // Close all files and reset variables
         file = temp2;
         globalResultfilename = temp2;
@@ -146,7 +146,7 @@ int main()
         cout << "Done!\n";
       }
       break;
-      
+
     default: // ASCII input
       for (int m = startNumber; m < endNumber; m+=interval) {
         sprintf(ftemp,"%8.8d",m);
@@ -155,11 +155,11 @@ int main()
         temp = file;
         globalResultfilename.append(ftemp);
         if (outBinary == 0)
-          globalResultfilename.append(filetemp2);
+          globalResultfilename.append(filetemp);
         else
           globalResultfilename.append(filetemp2);
         cout << "\nProcessing " << setiosflags(ios::left) << setw(58) << setfill('.') << globalResultfilename;
-        
+
         // Open local result file
         if (m == startNumber)
           localResultFile = new ifstream[numberofProcesses];
@@ -170,7 +170,7 @@ int main()
           localResultFile[r].open(file.c_str(), ifstream::in);
           file = temp;
         }
-        
+
         // Load local result file for global ID
         esize = process.size();
         if (outBinary == 0) {
@@ -200,7 +200,7 @@ int main()
             localResultFile[process[k]] >> data1;
             for (int j = 0; j < numVar; j++)
               localResultFile[process[k]] >> data[j];
-            
+
             // Write global file
             ID = k + 1;
             globalResultFile.write(reinterpret_cast<const char *>(&ID), sizeof(int));
@@ -208,7 +208,7 @@ int main()
               globalResultFile.write(reinterpret_cast<const char *>(&data[j]), sizeof(double));
           }
         }
-        
+
         // Close all files and reset variables
         file = temp2;
         globalResultfilename = temp2;
@@ -219,7 +219,7 @@ int main()
       }
       break;
   }
-  
+
 //  delete[] localResultFile;
 //  delete[] buffer;
   return 0;
