@@ -1,6 +1,10 @@
 History of Release
 ==================
 
+### Version 1.5 - 2017-10-23
+
+1. Added the merging of CE/SE Intermediate solutions.
+
 ### Version 1.4 - 2016-09-23
 
 1. Fixed bug for writing binary output about the element ID.

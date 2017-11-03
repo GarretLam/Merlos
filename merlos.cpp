@@ -21,13 +21,13 @@ void fileExist(fstream &file, string filename)
 int main()
 {
   string globalInfofilename = "GlobalToLocalMap.dat", wholelinedata, file = "Result-T", filetemp = ".dat", filetemp2 = ".bin", globalResultfilename = "Result-T", filelocal = "-LM", temp, temp2, dummy, str;
-  int startNumber = -1, endNumber = -1, interval = 0, numberofProcesses = 0, rank = 0, GlobalID = 0, ID = 0, lineLength = 0, esize = 0, offset = 8, minRank = 1, inBinary = 0, outBinary = 0, data1 = -1, dimensionality = 0, numVar = 0;
+  int startNumber = -1, endNumber = -1, interval = 0, numberofProcesses = 0, rank = 0, GlobalID = 0, ID = 0, lineLength = 0, esize = 0, offset = 8, minRank = 1, inBinary = 0, outBinary = 0, data1 = -1, dimensionality = 0, numVar = 0, mergingType = 0, offsetInt = 0, Step = 0, dummyInt = 0;
   vector<int> process, localID;
   char ftemp[8], f_rank[3];
   char* buffer;
   ifstream *localResultFile;
   ofstream globalResultFile;
-  double data[16] = {};
+  double data[16] = {}, Time = 0.0, timeInc = 0.0, nexttime = 0.0;
 
   fstream globalInfo(globalInfofilename.c_str(), ios::in);
   fileExist(globalInfo,globalInfofilename.c_str());
@@ -50,6 +50,8 @@ int main()
   cin >> inBinary;
   cout << "\nPlease enter the data type of the output files (0: ASCII  1: Binary):";
   cin >> outBinary;
+  cout << "\nPlease enter the format of the input files (0: Results  1: Intermediate solutions):";
+  cin >> mergingType;
 
   // Read global mesh to local mesh information (m, localMesh[m][k], k+1)
   temp2 = globalResultfilename;
@@ -70,8 +72,14 @@ int main()
   cout << "Done!";
 
   if (dimensionality == 2) {
-    numVar = 9;
+    if (mergingType) {
+      numVar = 12;
+    } else
+      numVar = 9;
   } else {
+    if (mergingType) {
+      numVar = 15;
+    } else
     numVar = 16;
   }
 
@@ -81,6 +89,8 @@ int main()
       for (int m = startNumber; m < endNumber; m+=interval) {
         sprintf(ftemp,"%8.8d",m);
         file.append(ftemp);
+        if (mergingType)
+          filelocal = "LM";
         file.append(filelocal);
         temp = file;
         globalResultfilename.append(ftemp);
@@ -111,6 +121,21 @@ int main()
         else
           globalResultFile.open(globalResultfilename.c_str(), std::ofstream::out);
 
+        if (mergingType) {
+          localResultFile[0].read(reinterpret_cast<char *>(&Time), sizeof(double));
+          localResultFile[0].read(reinterpret_cast<char *>(&timeInc), sizeof(double));
+          localResultFile[0].read(reinterpret_cast<char *>(&Step), sizeof(int));
+          localResultFile[0].read(reinterpret_cast<char *>(&nexttime), sizeof(double));
+          offsetInt = 8*3+4;
+          if (outBinary == 1) {
+            globalResultFile.write(reinterpret_cast<const char *>(&Time), sizeof(double));
+            globalResultFile.write(reinterpret_cast<const char *>(&timeInc), sizeof(double));
+            globalResultFile.write(reinterpret_cast<const char *>(&Step), sizeof(int));
+            globalResultFile.write(reinterpret_cast<const char *>(&nexttime), sizeof(double));
+          } else {
+            globalResultFile << setiosflags(ios::right) << setiosflags (ios::fixed | ios::showpoint) << setw(24) << setprecision(16) << Time << "   " << timeInc << "   " << Step << "   " << nexttime << endl;
+          }
+        }
         for (int k = 0; k < esize; k++) {
           // Check the length of 1 line
           if (k == 0) {
@@ -118,7 +143,7 @@ int main()
             buffer = new char[lineLength];
           }
           // Read local file
-          localResultFile[process[k]].seekg((localID[k]-1) * lineLength, localResultFile[process[k]].beg);
+          localResultFile[process[k]].seekg((localID[k]-1) * lineLength + offsetInt, localResultFile[process[k]].beg);
           localResultFile[process[k]].read(reinterpret_cast<char *>(&data1),sizeof(int));
           for (int j = 0; j < numVar; j++)
             localResultFile[process[k]].read(reinterpret_cast<char *>(&data[j]),sizeof(double));
@@ -151,6 +176,8 @@ int main()
       for (int m = startNumber; m < endNumber; m+=interval) {
         sprintf(ftemp,"%8.8d",m);
         file.append(ftemp);
+        if (mergingType)
+          filelocal = "LM";
         file.append(filelocal);
         temp = file;
         globalResultfilename.append(ftemp);
@@ -173,33 +200,63 @@ int main()
 
         // Load local result file for global ID
         esize = process.size();
-        if (outBinary == 0) {
+        if (outBinary == 1)
+          globalResultFile.open(globalResultfilename.c_str(), std::ofstream::out | ios::binary);
+        else
           globalResultFile.open(globalResultfilename.c_str(), std::ofstream::out);
+        
+        if (mergingType) {
+          localResultFile[0] >> Time >> timeInc >> Step >> nexttime;
+          offsetInt = 68; // May not correct for 3D Intermediate files;
+          if (outBinary == 1) {
+            globalResultFile.write(reinterpret_cast<const char *>(&Time), sizeof(double));
+            globalResultFile.write(reinterpret_cast<const char *>(&timeInc), sizeof(double));
+            globalResultFile.write(reinterpret_cast<const char *>(&Step), sizeof(int));
+            globalResultFile.write(reinterpret_cast<const char *>(&nexttime), sizeof(double));
+          } else {
+            globalResultFile << setiosflags(ios::right) << setiosflags (ios::fixed | ios::showpoint) << setw(24) << setprecision(16) << Time << "   " << timeInc << "   " << Step << "   " << nexttime << endl;
+          }
+        }
+        if (outBinary == 0) {
           for (int k = 0; k < esize; k++) {
             // Check the length of 1 line
             if (k == 0) {
               getline(localResultFile[0], wholelinedata);
-              lineLength = localResultFile[0].tellg();
+              if (mergingType) {
+                int header = localResultFile[0].tellg();
+                getline(localResultFile[0], wholelinedata);
+                int headerEnd = localResultFile[0].tellg();
+                lineLength = headerEnd - header;
+              } else
+                lineLength = localResultFile[0].tellg();
             }
             // Read local file
-            localResultFile[process[k]].seekg((localID[k]-1) * lineLength + offset, localResultFile[process[k]].beg);
+            localResultFile[process[k]].seekg((localID[k]-1) * lineLength + offset + offsetInt, localResultFile[process[k]].beg);
+            if (mergingType)
+              localResultFile[process[k]] >> dummyInt;
             getline(localResultFile[process[k]], wholelinedata);
             // Write global file
             globalResultFile << setiosflags(ios::right) << setw(8) << k+1 << wholelinedata << "\n";
           }
         } else {
-          globalResultFile.open(globalResultfilename.c_str(), std::ofstream::out | ios::binary);
           for (int k = 0; k < esize; k++) {
             // Check the length of 1 line
             if (k == 0) {
               getline(localResultFile[0], wholelinedata);
-              lineLength = localResultFile[0].tellg();
+              if (mergingType) {
+                int header = localResultFile[0].tellg();
+                getline(localResultFile[0], wholelinedata);
+                int headerEnd = localResultFile[0].tellg();
+                lineLength = headerEnd - header;
+              } else
+                lineLength = localResultFile[0].tellg();
             }
             // Read local file
             localResultFile[process[k]].seekg((localID[k]-1) * lineLength, localResultFile[process[k]].beg);
             localResultFile[process[k]] >> data1;
-            for (int j = 0; j < numVar; j++)
+            for (int j = 0; j < numVar; j++) {
               localResultFile[process[k]] >> data[j];
+            }
 
             // Write global file
             ID = k + 1;
