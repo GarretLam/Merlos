@@ -1,6 +1,11 @@
 History of Release
 ==================
 
+
+### Version 1.6 - 2020-09-10
+
+1. Fixed bug in ,erging 3D CE/SE Intermediate solutions.
+
 ### Version 1.5 - 2017-10-23
 
 1. Added the merging of CE/SE Intermediate solutions.

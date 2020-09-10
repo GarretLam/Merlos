@@ -27,13 +27,13 @@ int main()
   char* buffer;
   ifstream *localResultFile;
   ofstream globalResultFile;
-  double data[16] = {}, Time = 0.0, timeInc = 0.0, nexttime = 0.0;
+  double data[20] = {}, Time = 0.0, timeInc = 0.0, nexttime = 0.0;
 
   fstream globalInfo(globalInfofilename.c_str(), ios::in);
   fileExist(globalInfo,globalInfofilename.c_str());
 
   cout << "\nMERLOS - The merging of local solutions to the global solutions for CE/SE MPI program";
-  cout << "\nVersion 1.2";
+  cout << "\nVersion 1.6";
   cout << "\nCopyright (c) 2016 Garret. All rights reserved.";
   cout << "\n";
   cout << "\nPlease enter the starting number of file name for combining: ";
@@ -78,7 +78,7 @@ int main()
       numVar = 9;
   } else {
     if (mergingType) {
-      numVar = 15;
+      numVar = 20;
     } else
     numVar = 16;
   }
